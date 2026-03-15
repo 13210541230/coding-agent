@@ -1,0 +1,26 @@
+[project]
+name = "agent-platform"
+version = "0.1.0"
+description = "Code Agent Orchestration Platform"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+agent-platform = "agent_platform.cli:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_platform*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
