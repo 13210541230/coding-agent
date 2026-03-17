@@ -3,13 +3,21 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelEntry:
     name: str
     executor: str
     tier: int
     context_window: int
-    tags: list[str] = field(default_factory=list)
+    tags: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not (1 <= self.tier <= 4):
+            raise ValueError(f"tier must be 1–4, got {self.tier!r}")
+        if not self.name:
+            raise ValueError("name must not be empty")
+        if not self.executor:
+            raise ValueError("executor must not be empty")
 
 
 class ModelCatalog:

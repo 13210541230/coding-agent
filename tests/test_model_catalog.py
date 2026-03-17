@@ -1,14 +1,13 @@
 # tests/test_model_catalog.py
 from __future__ import annotations
-import pytest
 from agent_platform.model_router.catalog import ModelEntry, ModelCatalog
 
 SAMPLE = [
-    ModelEntry("opus",   "claude_code", tier=1, context_window=1000000, tags=["reasoning"]),
-    ModelEntry("sonnet", "claude_code", tier=2, context_window=1000000, tags=["balanced"]),
-    ModelEntry("haiku",  "claude_code", tier=3, context_window=200000,  tags=["fast"]),
-    ModelEntry("gpt-5.4","codex",       tier=1, context_window=1050000, tags=["reasoning"]),
-    ModelEntry("mini",   "codex",       tier=3, context_window=400000,  tags=["fast"]),
+    ModelEntry("opus",   "claude_code", tier=1, context_window=1000000, tags=("reasoning",)),
+    ModelEntry("sonnet", "claude_code", tier=2, context_window=1000000, tags=("balanced",)),
+    ModelEntry("haiku",  "claude_code", tier=3, context_window=200000,  tags=("fast",)),
+    ModelEntry("gpt-5.4","codex",       tier=1, context_window=1050000, tags=("reasoning",)),
+    ModelEntry("mini",   "codex",       tier=3, context_window=400000,  tags=("fast",)),
 ]
 
 def catalog():
@@ -36,8 +35,9 @@ def test_by_tier_cross_executor():
     assert names == {"opus", "gpt-5.4"}
 
 def test_user_entry_overrides_builtin_by_name_and_executor():
-    override = ModelEntry("opus", "claude_code", tier=2, context_window=99, tags=["custom"])
+    override = ModelEntry("opus", "claude_code", tier=2, context_window=99, tags=("custom",))
     c = ModelCatalog(SAMPLE + [override])
     entries = c.for_executor("claude_code")
+    assert len(c.for_executor("claude_code")) == 3
     opus = next(e for e in entries if e.name == "opus")
     assert opus.context_window == 99
