@@ -9,7 +9,7 @@
 ## 1. Goals
 
 - Replace stub `AgentRuntime` / placeholder `ModelRouter` with a real, working routing layer
-- Support `claude_code` and `codex` CLI executors with automatic fallback
+- Support `claude_code`, `codex`, and `mycodex` (local codex fork) CLI executors with automatic fallback
 - Route per workflow stage to the most appropriate model based on task complexity
 - Provide a model catalog with capability tiers for maintainable configuration
 - Remain extensible for future third-party API executors
@@ -78,10 +78,10 @@ class ModelEntry:
 
 | Tier | Description | Examples |
 |------|-------------|---------|
-| 1 | Strongest reasoning (most expensive) | claude-opus-4-6, gpt5.4 |
-| 2 | Balanced capability | claude-sonnet-4-6, gpt5.4-medium |
-| 3 | Lightweight / fast | claude-haiku-4-5, gpt5.4-mini |
-| 4 | Minimal / router use | codex-spark, local models |
+| 1 | Strongest reasoning (most expensive) | claude-opus-4-6, gpt-5.4, o3 |
+| 2 | Balanced capability | claude-sonnet-4-6, o4-mini, o3-mini |
+| 3 | Lightweight / fast | claude-haiku-4-5, codex-mini-latest |
+| 4 | Minimal / router use | reserved for future local models |
 
 ### Complexity → Max Tier Mapping
 
@@ -98,18 +98,34 @@ stage+complexity combination.
 
 ```python
 DEFAULT_CATALOG = [
-    # Claude Code
-    ModelEntry("claude-opus-4-6",   "claude_code", tier=1, context_window=200000, tags=["reasoning","code"]),
-    ModelEntry("claude-sonnet-4-6", "claude_code", tier=2, context_window=200000, tags=["code","balanced"]),
-    ModelEntry("claude-haiku-4-5",  "claude_code", tier=3, context_window=200000, tags=["fast","router"]),
+    # Claude Code (claude CLI)
+    # Source: Anthropic API docs 2026-03-17
+    ModelEntry("claude-opus-4-6",    "claude_code", tier=1, context_window=200000, tags=["reasoning","code"]),
+    ModelEntry("claude-sonnet-4-6",  "claude_code", tier=2, context_window=200000, tags=["code","balanced"]),
+    ModelEntry("claude-haiku-4-5",   "claude_code", tier=3, context_window=200000, tags=["fast","router"]),
 
-    # Codex
-    ModelEntry("gpt5.4",            "codex", tier=1, context_window=128000, tags=["reasoning","code"]),
-    ModelEntry("gpt5.4-medium",     "codex", tier=2, context_window=128000, tags=["code","balanced"]),
-    ModelEntry("gpt5.4-mini",       "codex", tier=3, context_window=128000, tags=["fast"]),
-    ModelEntry("codex-spark",       "codex", tier=4, context_window=32000,  tags=["fast","router"]),
+    # Codex CLI (codex) — default model is o4-mini per Codex CLI config.toml
+    # Source: openai-python SDK v2.28.0, Codex CLI README 2026-03-17
+    ModelEntry("gpt-5.4",            "codex", tier=1, context_window=1000000, tags=["reasoning","code"]),
+    ModelEntry("o3",                 "codex", tier=1, context_window=200000,  tags=["reasoning"]),
+    ModelEntry("o4-mini",            "codex", tier=2, context_window=200000,  tags=["code","balanced","default"]),
+    ModelEntry("o3-mini",            "codex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
+    ModelEntry("codex-mini-latest",  "codex", tier=3, context_window=128000,  tags=["fast","router"]),
+
+    # mycodex — local fork of Codex CLI, installed as `mycodex`
+    # Identical model support to codex; registered as a separate executor.
+    ModelEntry("gpt-5.4",            "mycodex", tier=1, context_window=1000000, tags=["reasoning","code"]),
+    ModelEntry("o3",                 "mycodex", tier=1, context_window=200000,  tags=["reasoning"]),
+    ModelEntry("o4-mini",            "mycodex", tier=2, context_window=200000,  tags=["code","balanced","default"]),
+    ModelEntry("o3-mini",            "mycodex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
+    ModelEntry("codex-mini-latest",  "mycodex", tier=3, context_window=128000,  tags=["fast","router"]),
 ]
 ```
+
+**`mycodex` executor note:** Local fork of Codex CLI with extended capabilities.
+Model pool is identical to `codex`. Registered via `CLICodexExecutor(codex_path="mycodex")`.
+Default priority chain: `mycodex` → `claude_code` → `codex` (mycodex preferred as
+the enhanced local path; claude_code second; upstream codex as final fallback).
 
 ### ModelCatalog API
 
@@ -121,7 +137,7 @@ class ModelCatalog:
 ```
 
 User extensions via `executor_config.json` → `model_catalog` key (merged at init,
-user entries override built-ins with the same `name`):
+user entries override built-ins with the same `name` + `executor` combination):
 ```json
 { "model_catalog": [
     { "name": "my-local", "executor": "third_party", "tier": 4,
@@ -332,14 +348,16 @@ class RoutingPolicy:
 
 ```json
 {
-  "executor_priority": ["claude_code", "codex"],
+  "executor_priority": ["mycodex", "claude_code", "codex"],
 
   "executor_disabled": {
+    "mycodex": false,
     "claude_code": false,
     "codex": false
   },
 
   "executor_paths": {
+    "mycodex": "mycodex",
     "claude_code": "claude",
     "codex": "codex"
   },
@@ -386,10 +404,11 @@ def _make_executor(name: str, config: dict):
             claude_path=paths.get("claude_code", config.get("claude_path", "claude")),
             live_execution=live,
         )
-    if name == "codex":
+    if name in ("codex", "mycodex"):
+        default_bin = "mycodex" if name == "mycodex" else "codex"
         return CLICodexExecutor(
             workdir=repo_root,
-            codex_path=paths.get("codex", config.get("codex_path", "codex")),
+            codex_path=paths.get(name, config.get("codex_path", default_bin)),
             live_execution=live,
         )
     raise ValueError(f"Unknown executor: {name}")
