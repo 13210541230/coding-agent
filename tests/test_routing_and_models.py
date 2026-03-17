@@ -73,5 +73,5 @@ def test_task_level_model_override_and_low_cost_defaults(tmp_path: Path) -> None
     queue = orch.store.read_json("tasks/task_queue.json", default=[])
 
     assert queue[0]["selected_model"] == "custom-model-a"
-    # complexity=small maps to nano (lowest cost) even under balanced/low_cost modes
-    assert queue[1]["selected_model"] == "gpt-4.1-nano"
+    # unsupported 4.1 nano/mini defaults are normalized to the allowed gpt-5.4 model
+    assert queue[1]["selected_model"] == "gpt-5.1-codex-mini"
