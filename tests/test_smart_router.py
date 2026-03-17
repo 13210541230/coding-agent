@@ -1,5 +1,4 @@
 from __future__ import annotations
-import pytest
 from agent_platform.model_router.smart_router import SmartRouter, AssessResult
 
 def router():
@@ -29,8 +28,10 @@ def test_long_description_triggers_large():
     assert result.complexity == "large"
 
 def test_short_description_triggers_small():
-    result = router().assess({"title": "task", "description": "fix bug"})
+    # Use a description with no signal keywords so only length heuristic applies.
+    result = router().assess({"title": "task", "description": "do a thing"})
     assert result.complexity == "small"
+    assert result.method == "rule"
 
 def test_empty_description_triggers_small():
     result = router().assess({"title": "task", "description": ""})
@@ -49,3 +50,8 @@ def test_medium_description_no_keywords_defaults_medium():
 def test_assess_result_has_confidence():
     result = router().assess({"complexity": "small"})
     assert 0.0 <= result.confidence <= 1.0
+
+def test_invalid_complexity_field_falls_through_to_rules():
+    result = router().assess({"complexity": "huge", "title": "refactor auth"})
+    assert result.complexity == "large"
+    assert result.method == "rule"

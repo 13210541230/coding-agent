@@ -1,5 +1,4 @@
 from __future__ import annotations
-import pytest
 from agent_platform.model_router.catalog import ModelCatalog, ModelEntry
 from agent_platform.model_router.policy import RoutingPolicy
 
@@ -39,3 +38,6 @@ def test_tier_based_small_uses_tier3():
 
 def test_unknown_executor_falls_back_to_default():
     assert policy().resolve("execution_loop", "large", "unknown_executor") == "strong"
+
+def test_no_executor_unconfigured_stage_falls_back_to_default():
+    assert policy().resolve("execution_loop", "large") == "strong"

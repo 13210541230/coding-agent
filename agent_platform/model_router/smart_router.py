@@ -1,6 +1,9 @@
 from __future__ import annotations
+import re
 from dataclasses import dataclass
 
+# Bilingual signals: Chinese (zh) + English keywords for task classification.
+# ASCII signals use word-boundary matching; CJK signals use substring matching.
 LARGE_SIGNALS = [
     "重构", "架构", "设计", "refactor", "architect", "system", "migrate",
     "rewrite", "overhaul", "redesign", "split", "extract module",
@@ -11,6 +14,14 @@ SMALL_SIGNALS = [
 ]
 DESCRIPTION_LENGTH_LARGE = 500
 DESCRIPTION_LENGTH_SMALL = 80
+
+
+def _signal_match(sig: str, text: str) -> bool:
+    """Match signal in text. ASCII signals use word boundaries to avoid false positives
+    (e.g. 'fix' should not match 'prefix'); CJK signals use substring matching."""
+    if sig.isascii():
+        return bool(re.search(r"\b" + re.escape(sig) + r"\b", text))
+    return sig in text
 
 
 @dataclass
@@ -36,9 +47,9 @@ def _rule_assess(task: dict) -> AssessResult:
     text = f"{title} {desc}"
 
     # 2. keyword signals
-    if any(sig in text for sig in LARGE_SIGNALS):
+    if any(_signal_match(sig, text) for sig in LARGE_SIGNALS):
         return AssessResult("large", method="rule", confidence=0.8)
-    if any(sig in text for sig in SMALL_SIGNALS):
+    if any(_signal_match(sig, text) for sig in SMALL_SIGNALS):
         return AssessResult("small", method="rule", confidence=0.8)
 
     # 3. length heuristic

@@ -1,5 +1,5 @@
-# agent_platform/model_router/policy.py
 from __future__ import annotations
+import logging
 from agent_platform.model_router.catalog import ModelCatalog
 
 COMPLEXITY_MAX_TIER: dict[str, int] = {
@@ -7,6 +7,8 @@ COMPLEXITY_MAX_TIER: dict[str, int] = {
     "medium": 2,
     "large": 1,
 }
+
+_MISSING = object()
 
 
 class RoutingPolicy:
@@ -21,7 +23,6 @@ class RoutingPolicy:
         self._default = default_model
 
     def resolve(self, stage: str, complexity: str, executor: str = "") -> str:
-        _MISSING = object()
         stage_cfg = self._stage_models.get(stage, _MISSING)
 
         if stage_cfg is not _MISSING:
@@ -43,6 +44,8 @@ class RoutingPolicy:
         # We find candidates with tier <= max_tier, then pick the one whose
         # tier is closest to max_tier (cheapest sufficient model).
         if executor:
+            if complexity not in COMPLEXITY_MAX_TIER:
+                logging.warning("Unknown complexity %r, defaulting to tier 2", complexity)
             max_tier = COMPLEXITY_MAX_TIER.get(complexity, 2)
             candidates = [
                 e for e in self._catalog.for_executor(executor)
