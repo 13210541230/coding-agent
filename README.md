@@ -51,8 +51,8 @@ Example config file:
   "executor_routing_mode": "complexity",
   "budget_mode": "low_cost",
   "stage_models": {
-    "analysis": "gpt-4.1-mini",
-    "planning": "gpt-4.1-mini"
+    "analysis": "gpt-5.4",
+    "planning": "gpt-5.4"
   }
 }
 ```

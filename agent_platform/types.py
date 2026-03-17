@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -57,6 +58,43 @@ class FailureAnalysis:
 class RetryDecision:
     action: str
     reason: str
+
+
+@dataclass
+class WorkflowStateV2:
+    workflow: str
+    current_phase: str
+    completed: list[str] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class Checkpoint:
+    phase: str
+    result: dict[str, Any] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.now)
+    duration_ms: int = 0
+
+
+@dataclass
+class Summary:
+    current_phase: str
+    last_result: dict[str, Any] = field(default_factory=dict)
+    next_phase: str = ""
+    completed: bool = False
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class TaskState:
+    id: str
+    title: str
+    status: str = "pending"
+    retries: int = 0
+    result: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
 
 
 Context = dict[str, Any]
