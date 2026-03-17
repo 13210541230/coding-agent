@@ -49,6 +49,9 @@ class ModelRouter:
         # delegate to RoutingPolicy when available
         if self._policy:
             task = task or {}
+            # task-level explicit model override takes priority over routing policy
+            if "model" in task:
+                return str(task["model"])
             from agent_platform.model_router.smart_router import _rule_assess
             complexity = _rule_assess(task).complexity
             return self._policy.resolve(stage, complexity, executor_name or "")

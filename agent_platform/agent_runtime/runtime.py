@@ -24,11 +24,16 @@ class AgentRuntime:
     ) -> dict:
         task = task or {}
         if self._smart_router and self._routing_policy:
-            assess = self._smart_router.assess(task)
-            model = self._routing_policy.resolve(
-                stage, assess.complexity, executor_name or ""
-            )
-            routing_method = assess.method
+            # task-level explicit model override takes priority over routing policy
+            if "model" in task:
+                model = str(task["model"])
+                routing_method = "explicit"
+            else:
+                assess = self._smart_router.assess(task)
+                model = self._routing_policy.resolve(
+                    stage, assess.complexity, executor_name or ""
+                )
+                routing_method = assess.method
         else:
             model = self._legacy_router.model_for(
                 stage=stage, task=task, executor_name=executor_name
