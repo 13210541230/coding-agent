@@ -41,3 +41,14 @@ def test_user_entry_overrides_builtin_by_name_and_executor():
     assert len(c.for_executor("claude_code")) == 3
     opus = next(e for e in entries if e.name == "opus")
     assert opus.context_window == 99
+
+
+def test_default_catalog_has_all_executors():
+    from agent_platform.model_router.default_catalog import DEFAULT_CATALOG
+    from agent_platform.model_router.catalog import ModelCatalog
+    c = ModelCatalog(DEFAULT_CATALOG)
+    for executor in ("claude_code", "codex", "mycodex"):
+        assert len(c.for_executor(executor)) > 0, f"no models for {executor}"
+    # tier-1 exists for each executor
+    for executor in ("claude_code", "codex", "mycodex"):
+        assert c.best_for(executor, max_tier=1) is not None
