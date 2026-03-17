@@ -119,7 +119,7 @@ class Orchestrator:
             "stage_models": {},
             "live_cli_execution": False,
             "codex_path": "mycodex",
-            "claude_path": "mycodex",
+            "claude_path": "claude",
         }
         file_cfg = self.store.read_json("artifacts/executor_config.json", default={})
         return {**base, **file_cfg, **(config or {})}

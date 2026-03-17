@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from agent_platform.executor_layer.registry import ExecutorRegistry
 from agent_platform.executor_layer.executors import ExecutionResult
 
@@ -35,6 +36,7 @@ class FallbackChain:
                 failures[entry.name] = str(e)
                 continue
             except Exception as e:
+                logging.warning("Executor %r raised unexpected error: %s", entry.name, e)
                 failures[entry.name] = str(e)
                 continue
 
