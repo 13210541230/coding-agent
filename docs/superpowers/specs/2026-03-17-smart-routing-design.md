@@ -78,9 +78,9 @@ class ModelEntry:
 
 | Tier | Description | Examples |
 |------|-------------|---------|
-| 1 | Strongest reasoning (most expensive) | claude-opus-4-6, gpt-5.4, o3 |
-| 2 | Balanced capability | claude-sonnet-4-6, o4-mini, o3-mini |
-| 3 | Lightweight / fast | claude-haiku-4-5, codex-mini-latest |
+| 1 | Strongest reasoning (most expensive) | claude-opus-4-6, gpt-5.4, gpt-5.3-codex |
+| 2 | Balanced capability | claude-sonnet-4-6, gpt-5.2-codex, gpt-5.2, gpt-5.1-codex-max |
+| 3 | Lightweight / fast | claude-haiku-4-5, gpt-5.1-codex-mini |
 | 4 | Minimal / router use | reserved for future local models |
 
 ### Complexity → Max Tier Mapping
@@ -104,21 +104,23 @@ DEFAULT_CATALOG = [
     ModelEntry("claude-sonnet-4-6",  "claude_code", tier=2, context_window=200000, tags=["code","balanced"]),
     ModelEntry("claude-haiku-4-5",   "claude_code", tier=3, context_window=200000, tags=["fast","router"]),
 
-    # Codex CLI (codex) — default model is o4-mini per Codex CLI config.toml
-    # Source: openai-python SDK v2.28.0, Codex CLI README 2026-03-17
-    ModelEntry("gpt-5.4",            "codex", tier=1, context_window=1000000, tags=["reasoning","code"]),
-    ModelEntry("o3",                 "codex", tier=1, context_window=200000,  tags=["reasoning"]),
-    ModelEntry("o4-mini",            "codex", tier=2, context_window=200000,  tags=["code","balanced","default"]),
-    ModelEntry("o3-mini",            "codex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
-    ModelEntry("codex-mini-latest",  "codex", tier=3, context_window=128000,  tags=["fast","router"]),
+    # Codex CLI (codex) — default model is gpt-5.4 per Codex CLI model selection menu
+    # Source: Codex CLI model selection screen (user-verified 2026-03-17)
+    ModelEntry("gpt-5.4",           "codex", tier=1, context_window=1000000, tags=["reasoning","code","default"]),
+    ModelEntry("gpt-5.3-codex",     "codex", tier=1, context_window=1000000, tags=["reasoning","code"]),
+    ModelEntry("gpt-5.2-codex",     "codex", tier=2, context_window=200000,  tags=["code","balanced"]),
+    ModelEntry("gpt-5.2",           "codex", tier=2, context_window=200000,  tags=["code","balanced"]),
+    ModelEntry("gpt-5.1-codex-max", "codex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
+    ModelEntry("gpt-5.1-codex-mini","codex", tier=3, context_window=128000,  tags=["fast","router"]),
 
     # mycodex — local fork of Codex CLI, installed as `mycodex`
     # Identical model support to codex; registered as a separate executor.
-    ModelEntry("gpt-5.4",            "mycodex", tier=1, context_window=1000000, tags=["reasoning","code"]),
-    ModelEntry("o3",                 "mycodex", tier=1, context_window=200000,  tags=["reasoning"]),
-    ModelEntry("o4-mini",            "mycodex", tier=2, context_window=200000,  tags=["code","balanced","default"]),
-    ModelEntry("o3-mini",            "mycodex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
-    ModelEntry("codex-mini-latest",  "mycodex", tier=3, context_window=128000,  tags=["fast","router"]),
+    ModelEntry("gpt-5.4",           "mycodex", tier=1, context_window=1000000, tags=["reasoning","code","default"]),
+    ModelEntry("gpt-5.3-codex",     "mycodex", tier=1, context_window=1000000, tags=["reasoning","code"]),
+    ModelEntry("gpt-5.2-codex",     "mycodex", tier=2, context_window=200000,  tags=["code","balanced"]),
+    ModelEntry("gpt-5.2",           "mycodex", tier=2, context_window=200000,  tags=["code","balanced"]),
+    ModelEntry("gpt-5.1-codex-max", "mycodex", tier=2, context_window=200000,  tags=["reasoning","balanced"]),
+    ModelEntry("gpt-5.1-codex-mini","mycodex", tier=3, context_window=128000,  tags=["fast","router"]),
 ]
 ```
 
@@ -300,7 +302,7 @@ class SmartRouter:
 1. stage_models[stage][complexity]          exact name match → return name
 2. stage_models[stage]["default"]           stage default name → return name
 3. catalog.best_for(executor, max_tier)     tier-based (see §3 complexity→tier table)
-4. default_model ("gpt5.4")                 final fallback
+4. default_model ("gpt-5.4")                final fallback
 ```
 
 Where "executor" in step 3 is the name of the first enabled executor in the registry
@@ -314,7 +316,7 @@ class RoutingPolicy:
         self,
         stage_models: dict,
         catalog: ModelCatalog,
-        default_model: str = "gpt5.4",
+        default_model: str = "gpt-5.4",
     ): ...
 
     def resolve(self, stage: str, complexity: str, executor: str = "") -> str:
@@ -327,17 +329,17 @@ class RoutingPolicy:
 {
   "stage_models": {
     "analysis": {
-      "small":   "gpt5.4-medium",
-      "medium":  "gpt5.4",
-      "large":   "gpt5.4"
+      "small":   "gpt-5.2-codex",
+      "medium":  "gpt-5.4",
+      "large":   "gpt-5.4"
     },
-    "planning":       { "default": "gpt5.4" },
+    "planning":       { "default": "gpt-5.4" },
     "execution_loop": {
-      "small":   "gpt5.4-mini",
-      "medium":  "gpt5.4-medium",
-      "large":   "gpt5.4"
+      "small":   "gpt-5.1-codex-mini",
+      "medium":  "gpt-5.2-codex",
+      "large":   "gpt-5.4"
     },
-    "review":         { "default": "gpt5.4-medium" }
+    "review":         { "default": "gpt-5.2-codex" }
   }
 }
 ```
@@ -365,10 +367,10 @@ class RoutingPolicy:
   "live_cli_execution": true,
 
   "stage_models": {
-    "analysis":       { "small": "gpt5.4-medium", "medium": "gpt5.4", "large": "gpt5.4" },
-    "planning":       { "default": "gpt5.4" },
-    "execution_loop": { "small": "gpt5.4-mini", "medium": "gpt5.4-medium", "large": "gpt5.4" },
-    "review":         { "default": "gpt5.4-medium" }
+    "analysis":       { "small": "gpt-5.2-codex", "medium": "gpt-5.4", "large": "gpt-5.4" },
+    "planning":       { "default": "gpt-5.4" },
+    "execution_loop": { "small": "gpt-5.1-codex-mini", "medium": "gpt-5.2-codex", "large": "gpt-5.4" },
+    "review":         { "default": "gpt-5.2-codex" }
   },
 
   "model_catalog": [],
