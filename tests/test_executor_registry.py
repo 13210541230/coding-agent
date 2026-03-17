@@ -56,3 +56,17 @@ def test_all_disabled_true_when_all_off():
     for name in ("mycodex", "claude_code", "codex"):
         r.disable(name)
     assert r.all_disabled() is True
+
+
+def test_all_disabled_false_on_empty_registry():
+    assert ExecutorRegistry().all_disabled() is False
+
+
+def test_disable_unknown_name_raises():
+    with pytest.raises(KeyError):
+        make_registry().disable("nonexistent")
+
+
+def test_enable_unknown_name_raises():
+    with pytest.raises(KeyError):
+        make_registry().enable("nonexistent")

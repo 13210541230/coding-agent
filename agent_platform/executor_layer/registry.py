@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -19,12 +19,14 @@ class ExecutorRegistry:
         self._entries[entry.name] = entry
 
     def disable(self, name: str) -> None:
-        if name in self._entries:
-            self._entries[name].enabled = False
+        if name not in self._entries:
+            raise KeyError(f"Unknown executor: {name!r}")
+        self._entries[name].enabled = False
 
     def enable(self, name: str) -> None:
-        if name in self._entries:
-            self._entries[name].enabled = True
+        if name not in self._entries:
+            raise KeyError(f"Unknown executor: {name!r}")
+        self._entries[name].enabled = True
 
     def ordered(self) -> list[ExecutorEntry]:
         return sorted(
@@ -36,4 +38,6 @@ class ExecutorRegistry:
         return self._entries.get(name)
 
     def all_disabled(self) -> bool:
-        return len(self.ordered()) == 0
+        if not self._entries:
+            return False
+        return all(not e.enabled for e in self._entries.values())
