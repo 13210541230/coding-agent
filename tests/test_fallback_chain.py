@@ -45,6 +45,7 @@ def test_falls_back_to_second_on_first_failure():
     r = make_registry(FailExecutor(), SuccessExecutor())
     result = FallbackChain(r).run("task", {})
     assert result.success is True
+    assert result.output == "ok"
 
 
 def test_login_error_auto_disables_executor():
@@ -77,12 +78,14 @@ def test_all_fail_raises_executor_unavailable_error():
 
 def test_empty_registry_raises_executor_unavailable_error():
     r = ExecutorRegistry()
-    with pytest.raises(ExecutorUnavailableError):
+    with pytest.raises(ExecutorUnavailableError) as exc_info:
         FallbackChain(r).run("task", {})
+    assert exc_info.value.failures == {}
 
 
 def test_all_disabled_raises_executor_unavailable_error():
     r = make_registry(SuccessExecutor())
     r.disable("success")
-    with pytest.raises(ExecutorUnavailableError):
+    with pytest.raises(ExecutorUnavailableError) as exc_info:
         FallbackChain(r).run("task", {})
+    assert exc_info.value.failures == {}

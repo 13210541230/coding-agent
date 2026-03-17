@@ -19,6 +19,7 @@ class FallbackChain:
         self._registry = registry
 
     def run(self, prompt: str, context: dict | None = None, model: str = "") -> ExecutionResult:
+        # model hint is reserved for future use; executors do not yet accept a model arg
         candidates = self._registry.ordered()
         if not candidates:
             raise ExecutorUnavailableError({})
@@ -31,7 +32,7 @@ class FallbackChain:
                 result = entry.executor.run(prompt, ctx)
             except FileNotFoundError as e:
                 self._registry.disable(entry.name)
-                failures[entry.name] = f"FileNotFoundError: {e}"
+                failures[entry.name] = str(e)
                 continue
             except Exception as e:
                 failures[entry.name] = str(e)
